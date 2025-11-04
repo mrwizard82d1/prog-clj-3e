@@ -1,0 +1,7 @@
+{
+ :paths ["src"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}}
+
+ ;; Add aliases so I need not remember all the command line details
+ :aliases {}}
