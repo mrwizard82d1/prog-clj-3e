@@ -323,3 +323,135 @@ nil
 
 ;; We can also use the result of `make-greeting` directly
 ((make-greeter "Howdy") "pardner")
+
+;; Vars, Bindings and Namespaces
+
+;; Some "definitions"
+;; - A namespace is a collection of names (symbols) that refer to `vars`
+;; - A `var` is **bound** to a value
+
+;; Define a symbol, `foo`, refers to a `var` in the current namespace
+;; bound to value 10.
+(def foo 10)
+
+foo
+
+;; More specifically, the initial value of a `var` is called its
+;; **root binding**.
+;;
+;; Sometimes, it is useful to have thread-local bindings for a `var`.
+
+;; One can refer to a `var` directly.
+(var foo)
+
+;; The `#'` reader macro is almost always used in Clojure code; a
+;; call to `var` is rare.
+#'foo
+
+;; One typically **does not** want to refer to a `var` directly;
+;; however, a `var` has many abilities beyond simply storing a value.
+;;
+;; - The same name can be aliased into more than one namespace. This
+;;   ability allows one to use convenient, short names.
+;; - A `var` can have **metadata**. This metadata includes
+;;   - Documentation
+;;   - Type hints (for optimization)
+;;   - Unit tests
+;; - A `var` can be dynamically rebound on a per-thread basis.
+
+;; Bindings
+
+;; A `var` is bound to a name, but other kinds of bindings exist
+;; as well. For example, a functional call binds values to parameters.
+(defn triple [number]
+  (* 3 number))
+
+;; The value 10 is bound to the parameter, `number`, when the function,
+;; `triple` is evaluated.
+(triple 10)
+
+;; The parameter bindings of a function have **lexical scope**. However,
+;; parameter bindings are **not** the only way to create a lexical scope.
+;; A `let` special form does nothing other than create a set of lexical
+;; bindings. For example, `(let [bindings*] exprs*)` creates a set of
+;; bindings that are in effect for each and every item in `exprs`.
+;; Additional, the value of the `let` expression is the value of the
+;; **last** expression in `exprs`.
+;;
+;; Imagine you want to calculat the coordinates of the four corners of
+;; a square given the bottom ordinate, the left abscissa, and the size.
+;; We can then calculate the `top` ordinate and `right` abscissa **once**,
+;; and then use these values in **all** subsequent `exprs` evaluations.
+(defn square-corners [bottom left size]
+  (let [top (+ bottom size)
+        right (+ left size)]
+    [[bottom left]
+     [top left]
+     [top right]
+     [bottom right]]))
+(square-corners 3 5 7)
+
+;; Destructuring
+
+;; Destructuring, available in many languages, but perhaps pioneered
+;; in Erlang, allows a developer to extract items inside structured
+;; data without writing explicit code to "walk down" the data structure.
+
+;; Imagine you're working with a database of book authors. Sometimes you
+;; need the first name, sometimes you need the last name, and sometimes
+;; you need both names.
+;;
+;; Without destructuring, code might look like:
+(defn greet-author-1 [author]
+  (println "Hello, " (:first-name author)))
+
+(greet-author-1 {:last-name "Vinge" :first-name "Vernor"})
+
+;; Although this code is typical of many languages, it also means
+;; that `greet-author-1` actually has **implicet** access to
+;; `:last-name`. This implicit access can cause problems. For example,
+;; one might unit test this function by only supplying a map with a
+;; `:first-name` key. The tests all work fine until the implementation
+;; changes to access `:last-name`. Then the tests all break. Destructuring
+;; more clearly indicates the error than all the tests failing by limiting
+;; the data required by the function.
+
+;; Here's the same example using destructuring of the `:first-name`
+;; field **only**.
+(defn greet-author-2 [{fname :first-name}]
+  (println "Hello, " fname))
+(greet-author-2 {:first-name "Vernor"})
+(greet-author-2 {:last-name "Vinge" :first-name "Vernor"})
+
+;; Destructuring works for **both** associative collections and
+;; vectors.
+;;
+;; For example, in a three- (or larger) dimensional space, one
+;; might only extract the first two coordinates of a point.
+(let [[x y] [1 2 3]]
+  [x y])
+
+;; Destructuring of vectors supports **skipping** values.
+;; For example,
+(let [[_ _ z] [1 2 3]]
+  z)
+
+;; Sometimes, one wants to bind not only individual items in a
+;; collection, but also the **entire** collection. Destructuring
+;; supports **both** these bindings.
+(let [[x y :as coords] [1 2 3 4 5 6]]
+  (str "x: " x
+       ", y: " y
+       ", total dimensions " (count coords)))
+
+;; As an example, lets create a function named `ellipsize` that takes a
+;; string and returns the first three words of that string followed
+;; by "..."
+(defn ellipsize [words]
+  (let [[w1 w2 w3] (clj-str/split words #"\W+")]
+    (clj-str/join " " [w1 w2 w3 "..."])))
+(ellipsize "The quick brown fox jumps over the lazy grey lamb.")
+
+;; These examples illustrate only a **subset** of what is available when
+;; using destructuring. See the Clojure documentation of binding forms and
+;; the Clojure destructuring guide for all the details.
