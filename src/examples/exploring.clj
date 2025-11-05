@@ -1,4 +1,6 @@
-(ns examples.exploring)
+(ns examples.exploring
+  (:require [clojure.string :as clj-str]
+            [clojure.string :as str]))
 
 ;; Numbers
 (+ 2 3)
@@ -203,3 +205,121 @@ nil
 
 ;; To find outher predicates, execute
 (clojure.repl/find-doc #"\?$")
+
+;; Functions
+
+;; A Clojure function call is written as a list whose first element is
+;; a Clojure function. For example, `str`
+(str "hello" " " "world")
+
+;; A function name is typically hyphenated. For example:
+(take-while #(> % 0) [2 1 0])
+
+;; By convention, if a function is a **predicate**, its name ends in a
+;; question mark.
+(string? "hello")
+(keyword? :hello)
+(symbol? 'hello)
+
+;; To define you own (top-level) function, use `defn`.
+(defn greeting
+  "Returns a greeting of the form, 'Hello, username.'"
+  [username]
+  (str "Hello, " username))
+
+(greeting "Larry")
+(greeting 1)
+(greeting 1.0)
+
+;; If a function has a "doc-string" (and it should), you can print that
+;; documentation
+(clojure.repl/doc greeting)
+
+;; If a caller fails to supply the `greeting` argument, Clojure raises
+;; an `ArityException`.
+(try
+ (greeting)
+ (catch Exception e
+   (str (.getMessage e))))
+
+;; An alternative form of `defn` allows one to create multiple functions
+;; with the same name but different arities.
+(defn greeting
+  "Returns a greeting of the form, 'Hello, username'.
+  The default `username` is 'World'."
+  ([] (greeting "World"))
+  ([username] (str "Hello, ", username)))
+
+(greeting "Larry")
+(greeting)
+
+;; Additionally, you can create a function with variable arity by
+;; including an **ampersand** in the parameter list. Clojure binds
+;; the name **after the ampersand** to a sequence of all remaining
+;; parameters. Clojure only supports a **single** variable arity
+;; parameter and it must be **last** in the parameter list.
+
+;; A function allowing two people to date with zero or more chaperones
+(defn date [person-1 person-2 & chaperones]
+  (println person-1 "and" person-2
+           "went out with" (count chaperones) "chaperones."))
+
+(date "Romeo" "Juliet" "Friar Lawrence" "Nurse")
+(date "Romeo" "Juliet" "Monty Python")
+(date "Romeo" "Juliet")
+
+;; The `defn` form create functions at the **top-level** of a module.
+;; To create a function local to another function, use an anonymous
+;; function form.
+
+
+;; Anonymous functions
+
+;; Three reasons to create anonymous functions
+;; - Function very brief
+;; - Function only used inside **another** function
+;; - Function **created** inside another function
+
+;; An example: filtering short functions
+
+;; Top-level
+(defn indexable-word? [word]
+  (> (count word) 2))
+
+(filter indexable-word? (clj-str/split "A fine day it is" #"\W+"))
+
+;; We can inline `indexable-word?` in the `filter` expression
+(filter
+ (fn [w] (> (count w) 2))
+ (clj-str/split "A fine day it is"
+                #"\W+"))
+
+;; We can use the reader macro syntax for an anonymous function
+(filter
+ #(> (count %) 2)
+ (clj-str/split "A fine day it is"
+                #"\W+"))
+
+;; Demonstrating the second reason for an anonymous function: to define
+;; one function inside another.
+(defn indexable-words [text]
+  (let [indexable-word? (fn [w] (> (count w) 2))]
+    (filter indexable-word?
+            (clj-str/split text #"\W+"))))
+
+(indexable-words "A fine day it is")
+
+;; Creating a function at run-time
+(defn make-greeter [greeting-prefix]
+  (fn [username]
+    (str greeting-prefix ", " username)))
+
+(def hello-greeting (make-greeter "Hello"))
+
+(def aloha-greeting (make-greeter "Aloha"))
+
+(hello-greeting "World")
+(aloha-greeting "World")
+
+;; We can also use the result of `make-greeting` directly
+((make-greeter "Howdy") "pardner")
