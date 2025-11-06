@@ -660,3 +660,21 @@ MessageFormat
 
 ;; The result is tha the Clojure interpreter opens a brovser to the
 ;; specified information.
+
+;; Comments
+
+;; Clojure provides several ways to create comments:
+
+;; This is a comment (automaticing formatting makes demonstration a bit
+;; more difficult).
+(comment (defn ignore-me []))
+           ;; not done yet
+
+;; A common use of the `comment` macro is to save a chunk of utility or
+;; test code in a comment block at the bottom of a file.
+
+;; Additionally, the reader macro, `#_` **reads** the next form but
+;; **ignores** it.
+(defn triple [number]
+  #_(println "debug triple" number)
+  (* 3 number))
