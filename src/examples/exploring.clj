@@ -678,3 +678,127 @@ MessageFormat
 (defn triple [number]
   #_(println "debug triple" number)
   (* 3 number))
+
+;; Flow control
+
+;; Branch with `if` (no `else`)
+(defn is-small? [number]
+  (if (< number 100) "yes"))
+
+(is-small? 50)
+(is-small? 50000)
+
+;; `if` **with** `else`
+(defn is-small? [number]
+  (if (< number 100)
+    "yes"
+    (do
+      ;; All expressions in the `do` form are evaluated for
+      ;; **side-effects**. Only the value of the **last** form is
+      ;; used as the value of the entire `do` expression.
+      (println "Saw a big number" number)
+      "no")))
+
+(is-small? 20)
+(is-small? 200)
+
+;; Recur with loop/recur
+
+;; The `loop` special form works like `let`:
+;;
+;; - It establishes **bindings** and, then,
+;; - Evaluates expressions with these bindings.
+;;
+;; However, the `loop` special form also **sets a recursion point**;
+;; that is, a point of execution which will be the "target" of a
+;; `recur` special form.
+;;
+;; When the form `(recur exprs*)` is encountered, the interpreter
+;; evaluates all the `exprs*` and then returns to the `loop` recursion
+;; point binding the values of `exprs*` to the `bindings*` of the `loop`.
+;;
+;; Here is an example of a countdown using `loop/recur`.
+(loop [result []
+       x 5]
+  (if (zero? x)
+    result
+    (recur (conj result x) (dec x))))
+
+;; The top of a function is also a recursion point. For example,
+(defn countdown [result x]
+  (if (zero? x)
+    result
+    (recur (conj result x) (dec x))))
+
+(countdown [] 5)
+
+;; Although recursion is the "primary" technique for "loops" in Clojure,
+;; you will probably not use it very much because the sequence library
+;; provides so many common recursions. For example, our `countdown`
+;; function could be expressed by:
+
+(into [] (take 5 (iterate dec 5)))
+
+(into [] (drop-last (reverse (range 6))))
+
+(vec (reverse (rest (range 6))))
+
+;; Beware, Clojure, unlike many other variants of LISP will **not**
+;; perform automatic tail-call optimization (TCO). However, it **will**
+;; optimize calls to `recur`.
+
+;; Where's my for loop?
+
+;; Clojure has **no** **for** loop and no direct mutable variables.
+;; So how does one write code that would include a **for** loop in
+;; most languages?
+;;
+;; We will illustrate this process by "porting" the function,
+;; `StringUtils::indexOfAny`.
+
+;; We begin by writing `indexed`, a Clojure function that pairs elements
+;; in a collection with the index of each element.
+
+(defn indexed [coll]
+  (map-indexed vector coll))
+
+(indexed "abcde")
+
+;; Now let's write a function, `index-filter`, that returns the indices
+;; of matching items instead of the matching items themselves.
+
+(defn index-filter [pred coll]
+  ;; When the predicate function is **not nil**
+  (when pred
+    ;; Loop over the indexed collection capturing the index of all
+    ;; elements for which `(pred elt)` returns `true`.
+    (for [[idx elt] (indexed coll) :when (pred elt)] idx)))
+
+;; Clojure sets are **functions** that test membership in the set.
+;; Consequently, one can pass a set of characters and a string to
+;; `index-filter` and get back the indices of all characters in the
+;; string that belong to the set.
+
+(index-filter #{\a \b} "abcdbbb")
+
+;; We've now actually accomplished **more** than the required
+;; functionality. The function, `index-filter`, returns the indices
+;; of **all** matching elements. We only need the **first match**.
+;; Consequently, the Clojure function, `index-of-any` only needs
+;; the **first** element of the result of `index-filter`.
+
+(defn index-of-any [pred coll]
+  (first (index-filter pred coll)))
+
+(index-of-any #{\z \a} "zzabyycdxx")
+(index-of-any #{\b \y} "zzabyycdxx")
+(index-of-any #{\e} "zzabyycdxx")
+
+;; The Clojure solution, `index-of-any`, is **vastly more general**
+;; than the Java static method, `indexOfAny`.
+;;
+;; For example, suppose we wanted the third occurrence of "heads" in
+;; a series of coin flips.
+(nth
+ (index-filter #{:h} [:t :t :h :t :h :t :t :t :h :t])
+ 2)
