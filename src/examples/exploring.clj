@@ -516,3 +516,40 @@ foo
 
 ;; We can use certain functions **only** in the REPL
 ;; (clojure.repl/find-doc "ns-")
+
+;; Metadata
+
+;; "In Clojure, metadata is data that is *orthogonal to the logical value
+;; of an object." (location 1488). For example, here is the metadat for
+;; the `str` variable.
+(meta #'str)
+
+;; To add your own metadata (key/value pairs) to a `var`, use the
+;; metadata reader macro, `^metadata form`.
+;;
+;; For example, the following (verbose) form adds metadata to the
+;; `shout` function.
+;;
+(defn ^{:tag String} shout
+  [^{:tag String} s]
+  (clojure.string/upper-case s))
+
+(meta #'shout)
+
+;; Because `:tag` metadata is so common, one can use the short-form,
+;; `^Classname` which expands to `^{:tag Classname}`. The definition
+;; of `shout` can be rewritten as follows:
+(defn ^String
+  shout [^String s]
+  (clojure.string/upper-case s))
+
+(meta #'shout)
+
+;; Finally, if you find the inline metadata disruptive, you can use the
+;; `defn` form that defines one or more forms in parentheses followd by
+;; the a metadata map.
+(defn shout
+  ([s] (clojure.string/upper-case s))
+  {:tag String})
+
+(meta #'shout)
