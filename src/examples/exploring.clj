@@ -553,3 +553,110 @@ foo
   {:tag String})
 
 (meta #'shout)
+
+;; Calling Java
+
+;; Clojure provides simple, direct syntax for calling Java code:
+;;
+;; - Creating objects
+;; - Invoking methods
+;; - Accessing static methods
+;; - Accessing static fields
+;;
+;; in addition, Clojure provides syntactic sugar that simplifies calling
+;; Java from Clojure.
+;;
+;; Additionally, Clojure supports Java special casses such as primitives
+;; and arrays.
+;;
+;; Finally, Clojure provides a set of convenience functions for common
+;; tasks that would be unwieldy in Java.
+
+;; Creating a new instance.
+(new java.util.Random)
+
+;; A more common shortcut: appending a period ('.') to the name of the
+;; class to insantiate.
+(java.util.Random.)
+
+;; The result of the previous "new" Java calls were lost; however, we
+;; can use `def` to capture the newly created instance. For example,
+(def rnd (new java.util.Random))
+rnd
+
+;; Now that we have an instance of the class, we can call methods on
+;; the instance using the dot (`.`) special form. For example,
+(. rnd nextInt)
+
+;; `Random` instances has a `nextInt` method that accetps an argument.
+;; You could call this like:
+(. rnd nextInt 10)
+
+;; The `.` syntax can also be used to access:
+;;
+;; - Instance fields
+;; - Static methods
+;; - Static fields
+;;
+;; Here are some examples.
+
+;; Instance field
+(def p (java.awt.Point. 10 20))
+p
+
+;; Static method
+(. System lineSeparator)
+
+;; Static field
+(. Math PI)
+
+;; One can access methods and fields using the same `.` form.
+;; If an instance has a method and a field with the same name, the
+;; **method**  is preferred.
+;;
+;; To access a field with the same name as a method, one can prepend a
+;; `-` to the name to apply **only to fields**. Here are some examples:
+
+;; Instance field
+(def p (java.awt.Point. 10 20))
+(. p -x)
+
+;; Static field
+(. Math PI)
+
+;; However, Clojure provides a more concise syntax for both instance and
+;; static access is preferred.
+;;
+;; - `(.method instance & args)`
+;; - `(.field instance)`
+;; - `(.-field instance)`
+;; - `(Class/method & args)`
+;; - `Class/field`
+
+;; One can rewrite the previous examples with the more concise syntax.
+(.nextInt rnd 10)
+(.x p)
+(System/lineSeparator)
+(Math/PI)
+
+
+;; To avaid typing `java.util.Random` all the time, one can use the following
+;; `import` form in a REPL or a similar `ns` option:
+(import '(java.util Random Locale)
+        '(java.text MessageFormat))
+
+Random
+Locale
+MessageFormat
+
+;; Finally, the Clojure REPL provides the function, `javadoc`, to access
+;; Java documentation.
+;; (javadoc java.net.URL)
+
+;; Calling this expression like the book currently fails. However, one can;
+
+(use 'clojure.java.javadoc)
+(javadoc java.net.URL)
+
+;; The result is tha the Clojure interpreter opens a brovser to the
+;; specified information.
