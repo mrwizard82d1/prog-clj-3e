@@ -1,6 +1,6 @@
 (ns examples.exploring
-  (:require [clojure.string :as clj-str]
-            [clojure.string :as str]))
+  (:require [clojure.string :as clj-str])
+  (:import [java.io File]))
 
 ;; Numbers
 (+ 2 3)
@@ -455,3 +455,64 @@ foo
 ;; These examples illustrate only a **subset** of what is available when
 ;; using destructuring. See the Clojure documentation of binding forms and
 ;; the Clojure destructuring guide for all the details.
+
+;; Namespaces
+
+(def foo 10)
+
+;; Resolve a `symbol` to see its fully qualified name. Remember, to avoid
+;; **evaluating** the symbol, one must quote it.
+(resolve 'foo)
+
+;; Switching namespaces creating it if necessary.
+;; This action must be taken in a REPL.
+;; (in-ns 'myapp)
+;;
+;; Remember, when changing namespaces, the `java.lang` package is
+;; automatically available, ...
+;; String
+;;
+;; ...but Clojure namespaces are **not** automatically available.
+;; (clojure.core/use 'clojure.core)
+;;
+;; Although `java.lang` is available automatically, other Java packages
+;; **must be imported**. Executing
+;; (File/separator)
+;; ...raises an exception: "No such namespace: File"
+;;
+;; However, calling the same function with a fully-qualified package name
+;; succeeds:
+;; (java.io.File/separator)
+;;
+;; To use a short name instead of a fully-qualified name, one must import
+;; (the) Java class(es) into the current namespace using `import`.
+;; (import '(java.io File InputStream))
+;;
+;; Once imported, one can use the classes `File` and `InputStream`
+;; **without** qualification.
+;; (.exists (File. "/tmp"))
+;;
+;; Clojure functions are handled differently (although somewhat similarly).
+;; For example, to use a Clojure `var` from another namespace without
+;; qualification, one **refers** the external `var` into the **current**
+;; namespace. For example, the following code works.
+;; (require 'clojure.string)
+;; (clojure.string/split "Something,separated,by,commas", #",")
+;;
+;; But, after the `require` call, using `split` without qualification
+;; fails.
+;; (split "Something,separated,by,commas", #",")
+;;
+;; One option to refer to functions without a fully qualified name is to
+;; use an **alias**.
+;; (require '[clojure.string :as clj-str])
+;;
+;; One can then call any function in `clojure.string` using the
+;; specified alias:
+;; (clj-str/split "Something,separated,by,commas" #",")
+;;
+;; This simple form of `require` imports **all** public `vars` in the
+;; `clojure.string` namespace using the alias `clj-str`.
+
+;; We can use certain functions **only** in the REPL
+;; (clojure.repl/find-doc "ns-")
