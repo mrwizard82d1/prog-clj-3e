@@ -1,4 +1,5 @@
-(ns examples.sequences)
+(ns examples.sequences
+  (:require [clojure.string :refer [join]]))
 
 ;; Sequences
 
@@ -102,3 +103,89 @@
 ;; All is not "sunshine and roses", however. English-language (and
 ;; other human languages) more easily express changes using the concept
 ;; of **mutability**.
+
+;; Using the sequence library
+
+;; Functions in the sequence "library" can be grouped into four broad
+;; categories:
+;;
+;; - Creating sequences
+;; - Filter sequences
+;; - Sequence predicates
+;; - Transform sequences
+
+;; Creating sequences
+
+;; The function, `range` produces a a sequence from `start` to `end`
+;; incrementing by `step` each time.
+(range 10)
+(range 10 20)
+(range 1 25 2)
+(range 0 -1 -0.25)
+(range 1/2 4 1)
+
+;; The function, `(repeat n x)` function repeats a value, `x`,
+;; `n` times.
+(repeat 5 1)
+(repeat 10 "x")
+
+;; `iterate` begins with a value, `x` and repeatedly (infinitely)
+;; applies a function, `f` to generate the next value in the sequence.
+;;
+;; Because `iterate` returns an infinite sequence of values, we use
+;; `take` to select the first 10 values.
+(take 10 (iterate inc 1))
+
+;; We can use `iterate` to generate **the entire sequence** of
+;; positive integers
+(def whole-numbers (iterate inc 1))
+
+;; When called with a single argument, `repeat` returns a lazy,
+;; infinitely long sequence of the single argument passed to
+;; `repeat`.
+(take 20 (repeat 1))
+
+;; The `cycle` function takes a collection and repeatedly returns
+;; each value in the collection.
+(take 10 (cycle (range 3)))
+
+;; The `interleave` function accepts **multiple collections**
+;; producing a new collection that interleaves values from each of
+;; these collections.
+(interleave whole-numbers ["A" "B" "C" "D" "E"])
+
+;; Closely related to `interleave` is `interpose` which returns a new
+;; collection consisting of all the values in the original collection
+;; argument but with the `separator` argument between each element.
+(interpose "," ["apples", "bananas", "grapes"])
+
+;; The `interpose` function works nicely with `str` to produce an
+;; output string.
+(apply str (interpose "," ["apples", "bananas", "grapes"]))
+
+;; This usage of `interpose` with `str` is common enough that the Clojure
+;; standard library has the function `join` that provides this function
+;; "out of the box".
+(join \, ["apples" "bananas" "grapes"])
+
+;; Creating populated Clojure collections
+;;
+;; - `(list & elements)`
+;; - `(vector & elements)`
+;; - `(hash-set & elements)`
+;; - `(hash-map key-1 val-1 ...)`
+
+;; The `set` function works differently from `hash-set`. It accepts a
+;; collection and adds all elements of that collection to the
+;; returned value.
+(set [1 2 3])
+
+;; `hash-set` takes a variable number of arguments and add all these
+;; arguments to the returned set.
+(hash-set 1 2 3)
+
+;; The functions, `vector` and `vec`, have a similar relationship.
+;; The `vec` function takes a single argument while `vector` accepts
+;; multiple arguments.
+(vec (range 3))
+(vector 0 1 2)
