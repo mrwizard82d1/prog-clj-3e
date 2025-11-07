@@ -189,3 +189,74 @@
 ;; multiple arguments.
 (vec (range 3))
 (vector 0 1 2)
+
+;; Filtering sequences
+
+;; The most basic function for filtering a sequence is, unsurprisingly,
+;; `filter`. It accepts a predicate and a collection and returns a
+;; sequence containing **only** those elements of `coll` for which the
+;; predicate function returns `true`.
+(take 10 (filter even? whole-numbers))
+(take 10 (filter odd? whole-numbers))
+
+;; Similarly, `take-while`, takes elements from a collection until the
+;; predicate function returns false.
+
+;; Remember, a `set`, when invoked as a function, returns `true` if and
+;; only if its argument is a member of the set.
+(def vowel? #{\a \e \i \o \u})
+
+;; Similarly, `complement`, accepts a predicate but returns the Boolean
+;; negation of the result of the predicate function.
+;;
+;; For example, the following definition creates a function that
+;; negates the result of applying `vowel?` to its argument.
+(def consonant? (complement vowel?))
+
+(take-while consonant? "the-quick-brown-fox")
+
+;; The opposite of `take-while` is `drop-while`. This function skips
+;; all elements of a collection for which the predicate returns `true`.
+(drop-while consonant? "the-quick-brown-fox")
+
+;; The functions, `split-at` and `split-with` split a collection
+;; into two.
+(split-at 5 (range 10))
+(split-with #(<= % 10) (range 0 20 2))
+
+;; Sequence predicates
+
+;; Where filter functions take a predicate and return a sequence,
+;; a sequence predicate applies the predicate function to each
+;; member of the sequence.
+
+;; For example, `every?` returns `true` if and only if invoking
+;; the predicate on **every** member of the collection returns
+;; `true`.
+(every? odd? [1 3 5])
+(every? odd? [1 3 5 8])
+
+;; The `some` function returns `true` if at least one member of the
+;; collection results in the `predicate` returning a true value.
+(some even? [1 2 3])
+(some odd? [1 2 3])
+(some even? [1 3 5])
+
+;; Even though our examples returned either `true` or `nil`, this
+;; behavior is a consequence of using a predicate. If we use a function
+;; that **does not** return a boolean value, `some` will return the
+;; first item for which our function returns a `truthy` value.
+(some #(rem % 5) [1 3 5])
+
+;; As another example, we can create a similar expression using the
+;; `identity` function to find the first logically true value in a
+;; sequence.
+(some identity [nil false 1 nil 2])
+
+;; A common use of `some` is to perform a linear seach of a sequence to
+;; determine if this sequence contains a **matchine** element. For example,
+(some #{3} (range 20))
+
+;; We also have "complementary" tests available to us.
+(not-every? even? whole-numbers)
+(not-any? even? whole-numbers)
