@@ -1,5 +1,6 @@
 (ns examples.sequences
-  (:require [clojure.string :refer [join]])
+  (:require [clojure.string :refer [join blank?]]
+            [clojure.java.io :refer [reader]])
   (:import java.io.File))
 
 ;; Sequences
@@ -447,3 +448,62 @@ x
         (minutes-to-millis 30))))
 
 (filter recently-modified? (file-seq (File. ".")))
+
+;; Seq-ing a stream
+
+;; A `Reader` provides a **stream** of characters. You can seq over the
+;; lines of any Java `Reader` using `line-seq`. To get a `Reader`, you
+;; can use the `cl`ojure.java.io` library. This library provides a
+;; function, `reader` that returns a reader on a
+;;
+;; - Stream
+;; - File
+;; - URL
+;; - URI
+sequen
+;; **Beware!** This call leaves the reader **open**.
+(take 2 (line-seq (reader "./src/examples/sequences.clj")))
+
+;; Since readers can represent non-memory resources that need to be
+;; closed, one should wrap reader creation. The following function
+;;
+;; - Opens the file
+;; - Counts all the lines in the file
+;; - Closes the file (implicity)
+(with-open [rdr (reader "src/examples/sequences.clj")]
+  (count (line-seq rdr)))
+
+;; The previous count includes blank lines. The following code allows
+;; one to **not** count blonk lines
+(with-open [rdr (reader "src/examples/sequences.clj")]
+  (count (filter #(re-find #"\S" %) (line-seq rdr))))
+
+;; Using seqs on both the file system and on the contents of individual
+;; files allows one to quickly create interesting utilities.
+;;
+;; - non-blank?
+;; - non-git?
+;; - clojure-src?
+;;
+;; Having created these utility function, we can then create a function,
+;; `clojure-loc`, that counts non-blank lines in Clojure source files.
+
+(defn non-blank? [line]
+  (not (blank? line)))
+
+(defn non-git? [file]
+  (not (.contains (.toString file) ".git")))
+
+(defn clojure-source? [file]
+  (.endsWith (.toString file) ".clj"))
+
+(defn clojure-loc [base-file]
+  (reduce
+   +
+   (for [file (file-seq base-file)
+         :when (and (clojure-source? file)
+                    (non-git? file))]
+     (with-open [rdr (reader file)]
+       (count (filter non-blank? (line-seq rdr)))))))
+
+(clojure-loc (java.io.File. "src/examples/sequences.clj"))
