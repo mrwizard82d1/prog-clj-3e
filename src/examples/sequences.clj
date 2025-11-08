@@ -312,3 +312,33 @@
 ;; comprehensions greedily, **do not** assume this behavior for
 ;; Clojure. Most sequence functions do not traverse elements until
 ;; they are actually needed.
+
+;; Lazy and infinite sequences
+
+;; (See `examples/primes.clj)
+
+;; When should you prefer lazy sequences? Most of the time.
+
+;; When viewing a large sequence from the REPL, you may wish to use `take`
+;; to prevent the REPL from evaluating the entire sequence.
+;;
+;; In other contexts, you may have the opposite problem. You've created
+;; a lazy sequence yet you want to force the sequence to evaluate fully.
+;; Consider the following sequence with side-effects due to a call
+;; to `printlin`.
+(def x (for [i (range 1 3)] (do (println i) i)))
+
+x
+
+;; Suprisingly, **defining** `x` **does not** invoke `println`. However,
+;; evaluating `x` does.
+
+;; The form, `doall` forces evaluation (except that it **does not**
+;; execute the `println` statement contrary to the text).
+(doall x)
+
+;; The form, `dorun` walks the elements of a sequence but **does not**
+;; retain elements as it walks. We see the `println` results in the REPL,
+;; but the form itself returns `nil`.
+(def x (for [i (range 1 3)] (do (println i) i)))
+(dorun x)
