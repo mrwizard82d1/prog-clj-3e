@@ -260,3 +260,55 @@
 ;; We also have "complementary" tests available to us.
 (not-every? even? whole-numbers)
 (not-any? even? whole-numbers)
+
+;; Transforming sequence
+
+;; The simplest transformation is `map`.
+(map #(format "<p>%s</p" %)
+     ["the" "quick" "brown" "fox"])
+
+;; Using `map`  with a mapping function of **multiple** arguments.
+(map #(format "<%s>%s</%s>" %1 %2 %1)
+     ["h1" "h2" "h3" "h1"]
+     ["the" "quick" "brown" "fox"])
+
+;; Another common transformation is `reduce`.
+(reduce + (range 1 11))
+(reduce * (range 1 11))
+
+;; The functions, `sort` and `sort-by`, can be used to sort a collection.
+(sort [42 1 7 11])
+(sort-by #(.toString %) [42 1 7 11])
+
+;; Seq comprehensions
+
+;; A basic example
+(for [word ["the" "quick" "brown" "fox"]]
+  (format "<p>%s</p>" word))
+
+;; Emulate filters using a `:when` clause
+(take 10
+      (for [n whole-numbers :when (even? n)] n))
+
+;; A `:while` clause continues evaluation only while its expression
+;; is `true`
+(for [n whole-numbers :while (even? n)] n)
+
+;; Seq comprehensions support **multiple** binding expressions. This
+;; example generates all possible squares on a chess board.
+(for [file "ABCDEFGH"
+      rank (range 1 9)]
+  (format "%c%d" file rank))
+
+;; The previous example iterates over `rank` faster than over `file`
+;; because `rank` is listed "to the right" of `file` in the bindings.
+;; We can iterate faster over the `file` binding by moving it to
+;; the "rightmost" position (later in the bindings).
+(for [rank (range 1 9)
+      file "abcdefgh"]
+  (format "%c%d" file rank))
+
+;; Although many languages perform transformations, filters, and
+;; comprehensions greedily, **do not** assume this behavior for
+;; Clojure. Most sequence functions do not traverse elements until
+;; they are actually needed.
