@@ -1,5 +1,6 @@
 (ns examples.sequences
-  (:require [clojure.string :refer [join]]))
+  (:require [clojure.string :refer [join]])
+  (:import java.io.File))
 
 ;; Sequences
 
@@ -411,3 +412,38 @@ x
 (sort (re-seq #"\w+" "the quick brown fox"))
 (drop 2 (re-seq #"\w+" "the quick brown fox"))
 (map clojure.string/upper-case (re-seq #"\w+" "the quick brown fix"))
+
+;; Seq-ing the file system
+
+;; You can seq over the file system. For example, you can call
+;; `java.io.File` directly. Remember that this expression returns a
+;; Java array of `Files`.
+(.listFiles (File. "."))
+
+;; We can make this result more useful by calling `seq` ourselves.
+(seq (.listFiles (File. ".")))
+
+;; To get, perhaps, a more useful result, one could use `map`
+
+;; Overkill
+(map #(.getName %) (seq (.listFiles (File. "."))))
+
+;; Remember, once you decide to use a function like `map`, calling
+;; `seq` explicitly is **redundant**.
+(map #(.getName %) (.listFiles (File. ".")))
+
+;; What if you want to actually "walk" the filesystem? Clojure provides
+;; a depth-first walk via `file-seq`. For example, using `file-seq`
+;; on the sample code directory for this book, one sees many files.
+(count (file-seq (File. ".")))
+
+;; What if you only care about files that have been recently changed?
+(defn minutes-to-millis [mins]
+  (* mins 60 1000))
+
+(defn recently-modified? [file]
+  (> (.lastModified file)
+     (- (System/currentTimeMillis)
+        (minutes-to-millis 30))))
+
+(filter recently-modified? (file-seq (File. ".")))
