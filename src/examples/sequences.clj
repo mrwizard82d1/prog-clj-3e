@@ -338,7 +338,56 @@ x
 (doall x)
 
 ;; The form, `dorun` walks the elements of a sequence but **does not**
-;; retain elements as it walks. We see the `println` results in the REPL,
+;; retain elements
+;; as it walks. We see the `println` results in the REPL,
 ;; but the form itself returns `nil`.
 (def x (for [i (range 1 3)] (do (println i) i)))
 (dorun x)
+
+;; Clojure makes Java "seq-able"
+
+;; Clojure wraps the following Java APIs to make them seqs
+;;
+;; - Collections API
+;; - Regular expressions
+;; - File system traversal
+;; - XML processing
+;; - Relational database results
+
+;; For example, Java arrays are seq-able
+
+;; `String.getBytes returns a byte array
+(first (.getBytes "hello"))
+(rest (.getBytes "hello"))
+(cons (int \h) (.getBytes "ello"))
+
+;; `Hashtables` and `Maps` are also seq-able
+
+;; `System.getProperties returns a `Hashtable``
+(first (System/getProperties))
+(rest (System/getProperties))
+
+;; Beware. One cannot use `cons` to **change**, for example,
+;; `System/getProperties`.
+
+;; Java strings are sequences of characters; consequently, they are
+;; seq-able.
+(first "Hello")
+(rest "Hello")
+(cons \H "ello")
+
+;; Remember, Clojure will automatically obtain a sequence from a
+;; collection. It **will not** automatically convert a sequence
+;; back to the original collection type. For example, `reverse`
+;; will generate a character sequence containing the characters
+;; of the original `String` in reverse order.
+(reverse "hello")
+
+;; To convert it back to a string, one applies `str` to the reversed
+;; string.
+(apply str (reverse "hello"))
+
+;; Remember, even though Java collections are seq-able, they **do not**
+;; offer significant advantages over Clojure's built-in collections.
+;; Generally, prefer Java collections only in interop scenarios where
+;; you're working with legacy Java APIs.
