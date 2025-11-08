@@ -391,3 +391,23 @@ x
 ;; offer significant advantages over Clojure's built-in collections.
 ;; Generally, prefer Java collections only in interop scenarios where
 ;; you're working with legacy Java APIs.
+
+;; Seq-ing regulare expressions
+
+;; One can use `re-matcher` to create a Java `Matcher` instance for a
+;; regular expression and a string and use `loop` on `re-find` to iterate
+;; over matches. **But don't.**
+
+;; Don't do this
+(let [m (re-matcher #"\w+" "the quick brown fox")]
+  (loop [match (re-find m)]
+    (when match
+      (println match)
+      (recur (re-find m)))))
+
+;; Instead, it is much better to use the higher leel `re-seq`. This
+;; choice gives you all the power of Clojure's sequence functions.
+(re-seq #"\w+" "the quick brown fox")
+(sort (re-seq #"\w+" "the quick brown fox"))
+(drop 2 (re-seq #"\w+" "the quick brown fox"))
+(map clojure.string/upper-case (re-seq #"\w+" "the quick brown fix"))
