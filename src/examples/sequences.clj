@@ -1,4 +1,4 @@
-(ns examples.sequences
+(ns exmples.sequences
   (:require [clojure.string :refer [join blank?]]
             [clojure.java.io :refer [reader]])
   (:import java.io.File))
@@ -460,7 +460,7 @@ x
 ;; - File
 ;; - URL
 ;; - URI
-sequen
+;;
 ;; **Beware!** This call leaves the reader **open**.
 (take 2 (line-seq (reader "./src/examples/sequences.clj")))
 
