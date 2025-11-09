@@ -1,6 +1,7 @@
 (ns exmples.sequences
   (:require [clojure.string :refer [join blank?]]
-            [clojure.java.io :refer [reader]])
+            [clojure.java.io :refer [reader]]
+            [clojure.set :refer :all])
   (:import java.io.File))
 
 ;; Sequences
@@ -507,3 +508,207 @@ x
        (count (filter non-blank? (line-seq rdr)))))))
 
 (clojure-loc (java.io.File. "src/examples/sequences.clj"))
+
+;; Calling structure-specific functions
+
+;; Function on lists[]
+
+(peek '(1 2 3))
+(pop '(1 2 3))
+
+;; Although `peek` is the same as `first`, `pop` is **not** the same as
+;; `rest`.
+
+(rest ())
+
+;; Throws an exception
+;; (pop ())
+
+;; Functions on vectors
+
+(peek [1 2 3])
+(pop [1 2 3])
+
+;; `get` returns the value at an index or returns `nil` if the index is
+;; outside the vector.
+(get [:a :b :c] 1)
+(get [:a :b :c] 3)
+
+;; Vectors are functions. They take an index argument and either
+;;
+;; - Return a value
+;; - Throw an exception if the index is out of bounds
+
+([:a :b :c] 1)
+;; ([:a :b :c] 3)
+
+;; `assoc` associates a new value with a particular index.
+(assoc [0 1 2 3 4] 2 :two)
+
+;; `subvec` returns a subvector of a vector using
+;; `(subvec avec start end)`
+
+;; If end is **not** sepecified, it deaults to the end of the vector
+(subvec [1 2 3 4 5] 3)
+(subvec [1 2 3 4 5] 1 3)
+
+;; One could simulate `subvec` with `take` and `drop`; however, `subvec`
+;; is **much** faster for vectors.
+
+;; Functions on maps
+
+;; Clojure provides several functions for reading the keys and values
+;; in a map.
+(keys {:sundance "spaniel", :darwin "beagle"})
+(vals {:sundance "spaniel", :darwin "beagle"})
+
+;; Remember, even though maps are unordered, both `keys` and `vals`
+;; are guaranteed to return the keys and values in the same order
+;; as a `seq` on the map.
+
+;; `get` returns the value for a key or returns `nil`
+(get {:sundance "spaniel", :darwin "beagle"} :darwin)
+(get {:sundance "spaniel", :darwin "beagle"} :snoopy)
+
+;; However, a mechanism exists that is even simpler than `get`.
+;; Maps are functions of their keys.
+({:sundance "spaniel", :darwin "beagle"} :darwin)
+({:sundance "spaniel", :darwin "beagle"} :snoopy)
+
+;; In addition, **keywords** are also functions. They take a collection
+;; as an argument and look themselves up in the collection. For example,
+(:darwin {:sundance "spaniel", :darwin "beagle"})
+(:snoopy {:sundance "spaniel", :darwin "beagle"})
+
+;; Unfortunately, looking up a key in a map is ambiguous. If the result
+;; is `nil`, it may mean either
+;;
+;; - The key is **not** in the map
+;; - The key **is** in the map; however, the value of that key is
+;;   actually `nil`
+;;
+;; The `contains?` function solves this problem by testing for the
+;; **presence** of a key.
+(def score {:stu nil, :joey 100})
+(:stu score)
+(contains? score :stu)
+
+;; Another option is to call `get` and supply a **third** argument.
+;; Evaluating the call to `get` will return the third argument if
+;; the key **does not exist**.
+(get score :stu :score-not-found)
+(get score :aaron :score-not-found)
+
+;; Clojure provides several functions for building new maps:
+;;
+;; - `assoc` returns a map with a key/value pair added
+;; - `dissoc` returns a map with a key/value pair removed
+;; - `select-keys` returns a map, keeping only a specified set of keys
+;; - `merge` combines maps. If multiple maps contain a key, the o
+;;    ightmost wins
+;;
+;; To test these functions, create some song data
+(def song {:name "Angus Dei"
+           :artist "Krzysztof Penderecki"
+           :album "Polish Requiem"
+           :genre "Classical"})
+
+(assoc song :kind "MPEG Audio File")
+
+(dissoc song :genre)
+
+(select-keys song [:name :artist])
+
+(merge song {:size 8118166, :time 507245})
+
+;; Remember that `song` **does not change**.
+
+;; The function, `merge-with` is like `merge` except:
+;;
+;; - When two or more maps have the same key, you can specify your
+;; own function to **combine** the two values with the **same key**.
+;; For example,
+(merge-with
+ concat
+ {:rubble ["Barney"], :flintstone ["Fred"]}
+ {:rubble ["Betty"], :flintstone ["Wilma"]}
+ {:rubble ["Bam-bam"], :flintstone ["Pebbles"]})
+
+;; Functons on sets
+
+(def languages #{"java" "c" "d" "clojure"})
+(def beverages #{"java", "chai", "pop"})
+
+;; The `union` of all languages and beverages
+(union languages beverages)
+
+;; Languages than are not also beverages
+(difference languages beverages)
+
+;; Both languages **and** beverages
+(intersection languages beverages)
+
+;; A number of languages can't afford a name langer than a single
+;; character.
+(select #(= 1 (count %)) languages)
+
+;; Clojure sets (and maps) have everything we need to implement
+;; a basic relational algebra system.
+
+(def compositions
+  #{{:name "The Art of the Fugue" :composer "J. S. Bach"}
+    {:name "Musical Offering" :composer "J. S. Bach"}
+    {:name "Requiem" :composer "Giuseppe Verdi"}
+    {:name "Requiem" :composer "W. A. Mozart"}})
+
+(def composers
+  #{{:composer "J. S. Bach", :country "Germany"}
+    {:composer "W. A. Mozart", :country "Austria"}
+    {:composer "Giuseppe Verdi", :country "Italy"}})
+
+(def nations
+  #{{:nation "Germany", :language "Germany"}
+    {:nation "Austria", :language "Germany"}
+    {:nation "Italy", :language "Italian"}})
+
+;; The `rename` function renames keys (database columns) based on
+;; a map from original names to new names.
+(rename compositions {:name :title})
+
+;; The `select` function returns a map for which a predicate is true.
+;; It is analogous to the `WHERE` portion of a SQL SELECT.
+(select #(= (:name %) "Requiem") compositions)
+
+;; The `project` function returns only the parts of maps that match
+;; a set of keys.
+;;
+;; `project` is similar to a SQL SELECT that specifies a subset of
+;; columns. Here's a projection that returns only the name of
+;; compositions.
+(project compositions [:name])
+
+;; The final relational primitive, a cross product, is the foundation
+;; for various kinds of joins in relational dataases. The cross product
+;; returns every possible combination of rows in different tables.
+;; For example,
+(join compositions composers)
+
+;; If the key names in two relations do  match, you can pass a
+;; `keymap` that maps key names in one relation to key sames in a
+;; second relation. For example, one can join composers to nations
+;; by mapping the key ``:country` to `:nation`.
+(join composers nations {:country :nation})
+
+;; Finally, one can **combine** relational primitievs. For example,
+;; suppose you want to know the set of all countries that are home
+;; to the composer of requiem. We can use:
+;;
+;; - `select` to find all the requiems
+;; - `join` to join the requiems to their componers
+;; - `project` to narrow the reslts to just country names
+
+(project
+ (join
+  (select #(= (:name %) "Requiem") compositions)
+  composers)
+ [:country])
