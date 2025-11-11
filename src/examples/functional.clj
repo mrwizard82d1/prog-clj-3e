@@ -232,3 +232,83 @@ a
 ;; to the specific range the client cares about. This implementation
 ;; would then allow clients to find the range they want using `take`
 ;; and `drop`.
+
+;; Lazy sequences
+
+;; A `lazy-seq` invokes its body only when needed; that is, when `seq`
+;; is called either directly or indirectly. Additionally, `lazy-seq`
+;; then caches the result for subsequent calls.
+
+;; Here is a lazy Fibanacci sequence defined using `lazy-seq`
+
+(defn lazy-seq-fibo
+  ;; Callers typically call the zero-argument version
+  ([]
+   (concat [0 1] (lazy-seq-fibo 0N 1N)))
+  ;; Essentially, the two-argument implementation is "private".
+  ([a b]
+   (let [n (+ a b)]
+     (lazy-seq
+      (cons n (lazy-seq-fibo b n))))))
+
+;; `lazy-seq-fibo` works for small values
+(take 10 (lazy-seq-fibo))
+
+;; However, `lazy-seq-fibo` also works for **large values**.
+;;
+;; Notice the call to `rem` which effectively extracts the
+;; last three digits of this very lange value.
+(rem (nth (lazy-seq-fibo) 1000000) 1000)
+
+;; The `lazy-seq-fibo` approach follows guideline #3 by using laziness
+;; to implement an infinite sequence. This approach works (much better
+;; than our previous approaches); however, we can accomplish this task
+;; with less hand-written code using guideline #5 and using existing
+;; sequence library functions.
+
+(take 5 (iterate (fn [[a b]] [b (+ a b)])
+                 [0 1]))
+
+;; This function starts with the first pair of Fibonacci numbers,
+;; `[0 1]`. From that pair, it calculates the next pair during the
+;; next iteration (invoking the Fibonacci generator function) and
+;; appends that next pair **lazily** to the sequence. And so on.
+
+;; This approach suggests our "final" implementation of the
+;; Fibonacci sequence.
+
+(defn fibo []
+  (map first (iterate (fn [[a b]] [b (+ a b)])
+                      [0N 1N])))
+(take 5 (fibo))
+(take 10 (fibo))
+(take 34 (fibo))
+(rem (nth (fibo) 1000000) 1000)
+
+;; Notice that `fibo` returns a lazy sequence because it builds on
+;; `map` and `iterate` both of which return **lazy sequences**.
+;; Additionally, `fibo` is **simple** and short. It is understandable
+;; because the code reflects the "definition" of the Fibonacci
+;; sequence **but does not** obfuscate that definition with code.
+
+;; However, learning to think recursively, lazily, and within the
+;; JVM's limitations on recursion - all at the same time, requires
+;; work, creativity and experience.
+;;
+;; Remember, guideline #3 correctly predicts that the right approach
+;; is to use a lazy sequence, and guideline #5 lets **existing**
+;; sequences do most of the work.
+
+;; Be cautious, though. Lazy sequences consume **some** stack and heap.
+;; But they **do not** consume resources proportional to the size of
+;; the entire - possibly infinite - sequence that they generate. By
+;; generating these sequences lazily, you, the programmer, choose
+;; how what resources, for example, time, you will consume to traverse
+;; the sequence. For example, if you need the one millionth Fibonacci
+;; number, you can use `fibo` to generate it - **without** consuming
+;; stack or heap space for **all** those previous values. Remember,
+;; there is no such thing as a free lunch.
+
+;; In general, when writing Clojure programs, you should prefer lazy
+;; sequences over loop/recur for **any** sequence that varies in size
+;; **and** for any "large" sequence.
