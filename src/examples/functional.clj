@@ -9,6 +9,8 @@
 ;; If it is a _pure function_, then `data-1` and `data-2` **must be**
 ;; immutable. (If not, calling `mystery` with the same input at
 ;; different times would return different results.)
+(def data-1 :foo)
+(def data-2 :bar)
 (defn mystery [input]
   (if input data-1 data-2))
 
@@ -146,3 +148,87 @@ a
 
 ;; Generally, in Clojure, you should almost always avoid
 ;; _stack-consuming_ recursion like `stack-consuming-fibo`.
+
+;; Tail recursion
+
+;; Functional programs can solve the stack-usage problem with
+;; _tail recursion_. In a tail-recursive function, the recursion must
+;; be the last operation performed by the function; that is, the
+;; expression returned by the function. A language can then perform
+;; _tail-call opimization_ (TCO) and convert the recursion into an
+;; iteration that **odes not** consume the stack.
+
+;; To convert `stack-consuming-fibo` to a tail recursive function, one
+;; must create a function whose arguments hawe enough information to
+;; move the recursion forward without accruing an "after work" (like
+;; an addition between two Fibonacci numbers).
+;;
+;; These ideas suggest that a function whose arguments
+;;
+;; - Incude the two Fibonacci numbers
+;; - An ordinal value, `n`, to count down
+
+(defn tail-fibo [n]
+  (letfn [(fib [current next n]
+            (if (zero? n)
+              current
+              (fib next (+ current next) (dec n))))]
+    (fib 0N 1N n)))
+
+;; This definition uses `letfn`. `leftn` is like `let` but is
+;; dedicated to creating local functions. Uniquely, any function
+;; defined in the `letfn` can call either itself or any other
+;; function defined in the `letfn` block.
+
+;; `tail-fibo` works for small values of `n`.
+(tail-fibo 9)
+
+;; However, even though it is tail recursive, it fails for large
+;; values of `n` because Java **does not** perform tail call
+;; optimization. Other functional languages, like Haskell or Scheme
+;; could call a language-specific function like `fib` without "blowing"
+;; the stack.
+
+;; Clojure provides several pragmatic workarounds:
+;;
+;; - Explicit self-recursion with `recur`
+;; - Lazy sequences
+;; - Explicit multual recursion with `trampoline
+;;
+;; We'll discuss the first two techniques here. We'll defer the
+;; discussion of `trampoline` for later in this chapter.
+
+;; Self-recursion with `recur`
+
+;; The function, `tail-fibo`, is an example of self-recursion that can
+;; be optimized away on the JVM.
+;;
+;; In Clojure, we can convert a function that perferms a tail-recursive
+;; call into self-recursion with `recur`.
+
+;; Better, but still not great
+(defn recur-fibo [n]
+  (letfn [(fib [current next n]
+            (if (zero? n)
+              current
+              (recur next (+ current next) (dec n))))]
+    (fib 0N 1N n)))
+
+;; Unlike other previous implementations of Fibonacci numbers,
+;; `recur-fib` will **not** consume stack as it calculates.
+
+(recur-fibo 9)
+
+;; Remember, calculating the millionth Fibonacci number does take some
+;; time.
+(recur-fibo 1000000)
+
+;; Although `recur-fibo` can calculate a **single** Fibonacci number,
+;; it does not effectively support multiple calls because each call
+;; starts completely frush. Since the function itself has insufficient
+;; information to effectively cache values.
+
+;; Ideally, you'd define sequonces with an API that makes no reference
+;; to the specific range the client cares about. This implementation
+;; would then allow clients to find the range they want using `take`
+;; and `drop`.
