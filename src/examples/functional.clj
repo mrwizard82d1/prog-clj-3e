@@ -312,3 +312,71 @@ a
 ;; In general, when writing Clojure programs, you should prefer lazy
 ;; sequences over loop/recur for **any** sequence that varies in size
 ;; **and** for any "large" sequence.
+
+;; Coming to Realization
+
+;; Remember, lazy sequences only consume resources when they are
+;; **realized**; that is, when a portion of the sequences is
+;; instantiated in memory.
+
+;; For example, `take` returns a lazy sequence and does no realization
+;; at all. For example, the following expression holds the first billion
+;; (Yes. That is with a `B`!) Fibonacci numbers
+(def lots-of-fibs (take 1000000000 (fibo)))
+
+;; Notice tha creating `lots-of-fibs` returns almost immediately.
+;; This, seemingly inexplicable action, does _almost nothing_. If you
+;; ever call a function that **actually uses values** in `lots-of-fibs`,
+;; Clojure will calculate them **at that time**. For example, the
+;; following call will return the 100th Fibonacci number from
+;; `lots-of-fibs` but **without** calculating the billion other
+;; numbers that `lots-of-fibs` "promises" to provide.
+
+(nth lots-of-fibs 100)
+
+;; Most sequence functions return lazy sequences. If you are
+;; uncertain, the function documentation will typically tell you the
+;; answer.
+
+;; Remember, though, the REPL is **not** lazy. It will try to print
+;; all billion numbers in the sequence `(take 1000000000 (fibo))`.
+;; You may not wish to wait.
+;;
+;; As a convenience for working with lazy sequences, you can configure
+;; how many items will be printed in the REPL by setting the vale of
+;; `*print-length*`. For example,
+
+(set! *print-length* 10)
+(take 1000000000 (fibo))
+(fibo)
+(set! *print-length* nil)  ;; Resets `*print-length*` to its default
+
+;; Losing your head
+
+;; We must consider one last aspect of working with lazy sequences.
+;; Although we can create large (possibly infinite) sequences and
+;; then only work with a part of that large sequence, our efforts
+;; will fail if we (unintentionally) hald a reference to the part
+;; of the sequence that **we no longer care about**.
+;;
+;; The most common way for this situation to arise is when one
+;; accidentally holds on the head (the first item) of a sequence.
+;;
+;; For example, we could define a sequence as a top-level var:
+
+(def head-fibo (lazy-cat [0N 1N] (map + head-fibo (rest head-fibo))))
+
+;; This definition is a very pretty definition; however, it retains
+;; the head of an infinite sequences. This retention ensures that,
+;; when one uses a part of this sequence, the **entire sequence**,
+;; at least up to the last item used, **remains in memory**.
+;;
+;; This definition works very well for small Fibonacci numbers
+(take 10 head-fibo)
+
+;; But fails with an `OutOfMemoryError` fo large Fibonacci numbers.
+;; `(nth head-fibo 1000000)`
+
+;; Unless you actually want to cache a sequences as you traverse it,
+;; one **must be careful** to **not** keep a reference to the head of
+;; the (large) sequence.
