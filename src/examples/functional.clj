@@ -380,3 +380,150 @@ a
 ;; Unless you actually want to cache a sequences as you traverse it,
 ;; one **must be careful** to **not** keep a reference to the head of
 ;; the (large) sequence.
+
+;; Lazier than lazy
+
+;; To demonstrate these techniques, we implement several solutions
+;; to the problem: how many times does "heads" occur twice in a row
+;; in a specified sequence. For example, two "pairs of heads"
+;; occurs in the sequence `[:h :t :t :h :h :h]`.
+;;
+;; Although our example sequences is small, the number of coin tosses
+;; could be **very large**. Since we're looking for a scalar answer,
+;; according to rule #2, its acceptable to use `recur`.
+
+(defn count-heads-pairs [coll]
+  (loop [cnt 0 coll coll]
+    (if (empty? coll)
+      cnt
+      (recur
+       ;; Must recur with **two** values
+       (if (= :h (first coll) (second coll))
+         (inc cnt)
+         cnt)
+       (rest coll)))))
+
+;; Try it out
+(count-heads-pairs [:h :h :h :t :h])
+(count-heads-pairs [:h :t :h :t :h])
+
+;; Although this code works, it is obscure. (It took me several tries
+;; simply to get the code entered correctly!) To fix this, we need to
+;; use guidelines #5 and #6 to take advantage of Clojure's sequence
+;; library.
+
+;; Transforming the input seqence
+
+;; To analyze pairs, we can transform our original sequence...
+
+[:h :t :t :h :h :h]
+
+;; ...Into a sequance of elements taken as pairs
+[[:h :t] [:t :t] [:t :h] [:h :h] [:h :h]]
+
+;; Let's write a function that performs this transformation
+(defn by-pairs [coll]
+  (let [take-pair (fn [c]
+                    (when (next c)
+                      (take 2 c)))]
+    (lazy-seq
+     (when-let [pair (seq (take-pair coll))]
+       (cons pair (by-pairs (rest coll)))))))
+
+(by-pairs [:h :t :t :h :h :h])
+
+(defn count-heads-pairs [coll]
+  (count (filter (fn [pair]
+                   (every? #(= :h %) pair))
+                 (by-pairs coll))))
+
+(count-heads-pairs [:h :t :t :h :h :h])
+
+;; Although this recent definition of `count-head-pairs` is better than
+;; our previous implementation, we can make it even simpler by using
+;; the `partition` function from the Clojure standard library.
+
+(partition 2 [:h :t :t :h :h :h])
+
+;; The result is similar to the result of `by-pairs` but different
+;; because it splits our collection into pairs **without overlap**.
+;; However, an implementation of `partition` allows us to specify
+;; how fair `partition` moves over its collection before it takes
+;; the next pair.
+
+(partition 2 1 [:h :t :t :h :h :h])
+(by-pairs [:h :t :t :h :h :h])
+(= (partition 2 1 [:h :t :t :h :h :h])
+   (by-pairs [:h :t :t :h :h :h]))
+
+;; Another possible area of improvement is the `count/filter` idiom
+;; used to actually count pairs that are both heads. This combination
+;; occurs often enough that it is worth encapsulationg in a function
+;; named `count-if`.
+
+(def ^{:doc "Count items matching a filter"}
+  count-if (comp count filter))
+
+;; This definition uses `comp` to **compose** two functions.
+
+;;The result:
+(count-if odd? [1 2 3 4 5])
+
+;; Finally, we can use `count-if` and `partition` to create a
+;; function named `count-runs` thats **more general** that
+;; `count-heads-pairs`.
+
+(defn count-runs
+  "Count runs of length `n` where `pred ` is true in `coll`."
+  [n pred coll]
+  (count-if #(every? pred %) (partition n 1 coll)))
+
+;; You can use it to count pairs of heads...
+(count-runs 2 #(= % :h) [:h :t :t :h :h :h])
+
+;; ...but you could also count pairs of tails...
+(count-runs 2 #(= % :t) [:h :t :t :h :h :h])
+
+;; ...or, how about **runs of three** heads in a row?
+(count-runs 3 #(= % :h) [:h :t :t :h :h :h])
+
+;; Currying and partial application
+
+;; If you still want to heve a function named `count-head-pairs`, you
+;; can implement it in terms of `count-runs`:
+
+(def ^{:doc "Count runs of length two that are both heads"}
+  count-head-pairs (partial count-runs 2 #(= % :h)))
+
+(count-head-pairs [:h :t :t :h :h :h])
+
+;; This version of `count-head-pairs` uses `partial` to build a
+;; new function. The function, `partial`, performs a
+;; _partial application_ of a function. To invoke `partial` you
+;; must supply a function, `f`, and part of its argument list
+;; when you invoke `partial`.
+
+;; The function, `partial`, is similar but not identical
+;; to _currying_ When you curry a function, you get a new function
+;; that takes a function and a **single argument** and returns a
+;; new function with that single argument **fixed**.
+
+;; If Clojure had a curry, one might implement it like:
+(defn faux-curry [& args]
+  (apply partial partial args))
+
+;; One use of curry is partial application. Here is a partial
+;; application in Clojure:
+(def add-3 (partial + 3))
+
+(add-3 7)
+
+;; And here is partial application using our `faux-curry`.
+(def add-3 ((faux-curry +) 3))
+
+(add-3 7)
+
+;; Note that `faux-curry` is not a true curry because a real curry
+;; returns a result, not a function of no arguments, when all the
+;; arguments are fixed.
+((faux-curry true?) (= 1 1))
