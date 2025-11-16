@@ -623,3 +623,73 @@ a
 
 ;; Unfortunately, many mutual recursion problems **will not** simplify
 ;; into an elegant recursion.
+
+;; Trampolining mutual recursion
+
+;; A _trampoline_ is a technique for optimizng mutual recursion
+;; allowing a **caller** (not an **implementer**) to to call more than
+;; one function inside the trampoline. In turn, this capability allows
+;; a caller to optimize mutual recursion.
+
+;; The Clojure `trampoline` function invokes **one** of your mutually
+;; recursive functions. If the return value is **not** a function,
+;; `trampoline` simply returns the value.
+
+(trampoline list)
+(trampoline + 1 2)
+
+;; However, if the return value of `trampoline` **is a function**,
+;; `trampoline` assumes you want to call it recursively  and calls it
+;; for you.
+
+;; **Don't write code like this**.
+(defn trampoline-fibo [n]
+  (let [fib (fn fib [f-2 f-1 current]
+              (let [f (+ f-2 f-1)]
+                (if (= n current)
+                  f
+                  #(fib f-1 f (inc current)))))]
+    (cond
+     (= n 0) 0
+     (= n 1) 1
+     :else (fib 0N 1 2))))
+
+;; THe only difference betwen this implementation and the original
+;; version of `tail-fibo` is the leading `#` at the last line of the
+;; `let` form.
+
+;; Try bouncing `trampoline-fibo` on a `trampoline`:
+(trampoline trampoline-fibo 9)
+
+;; And this implementation handles very lange values just fine.
+(rem (trampoline trampoline-fibo 1000000) 1000)
+
+;; Because `trampoline-fibo` is self-recursive, `trampoline` offers
+;; no advantage over `recur`.
+
+;; However, if we consider the mutual recursive definition of `my-odd?`
+;; and `my-even?`, one can convert the previously "broken"
+;; implementation  into working code similar to `trampoline-fibo`.
+
+(declare my-odd? my-even?)
+
+(defn my-odd? [n]
+  (if (= n 0)
+    false
+    #(my-even? (dec n))))
+
+(defn my-even? [n]
+  (if (= n 0)
+    true
+    #(my-odd? (dec n))))
+
+(trampoline my-even? 1000000)
+
+;; BEWARE! A function with a recursive call of the form
+;; `#(function args*)` can **only** be called inside a `trampoline`
+;; call. Otherwise, Clojure reports a `SyntaxError`.
+
+;; A trampoline is a **special-purpose solution** to a specific
+;; problem. It requires "doctoring" your original function to
+;; return a **different type**  to indicate recursion. In reality,
+;; may Clojure programmers never encounter a case for `trampoline`.
