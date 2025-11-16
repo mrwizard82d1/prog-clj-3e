@@ -550,7 +550,7 @@ a
 (map my-odd? (range 10))
 
 ;; Unfortunately, both `my-odd?` and `my-even?` consume stack frames
-;; proportional to the size of their argument so they will fail with
+;; proport$onal to the size of their argument so they will fail with
 ;; large numbers.
 ;; (my-even? (* 1000 1000 1000))
 
@@ -581,3 +581,45 @@ a
 ;; - Trampolining a mutual recursion
 ;; - Replacing recursion with laziness
 ;; - Shortcutting recursion with memoization
+
+;; Converting to self-recursion
+
+;; One can often use mutual recursion to model separate but related
+;; concepts. This approach fits odd and even.
+;;
+;; One can sometimes convert mutual recursion to self-recursion by
+;; comming up with a **single** abstraction to addresses multiple
+;; concepts simultaneously. For example, oddness and evenness are
+;; related to **parity**.
+;;
+;; Lets define a `parity` function that usen `recur` and returns 0
+;; for even nubers and 1 for odd numbers.
+
+(defn parity [n]
+  (loop [n n
+         par 0]
+    (if (= n 0)
+      par
+      (recur (dec n) (- 1 par)))))
+
+;; It works for small numbers.
+(map parity (range 10))
+
+(parity (* 1000 1000 1000))
+(parity (+ 1 (* 1000 1000 1000)))
+
+;; We can now trivially implement `my-odd?` and `my-even?` using
+;; `parity`.
+(defn my-even [n] (= 0 (parity n)))
+(defn my-odd [n] (= 1 (parity n)))
+
+(map my-even? (range 10))
+(map my-odd? (range 10))
+
+;; Unfortunately, and strangely, both `my-even?` and `my-odd?` overflow
+;; for very lange numbers.
+;; (my-even? (* 1000 1000 1000))
+;; (my-odd? (* 1000 1000 1000))
+
+;; Unfortunately, many mutual recursion problems **will not** simplify
+;; into an elegant recursion.
