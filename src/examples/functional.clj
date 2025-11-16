@@ -322,17 +322,17 @@ a
 ;; For example, `take` returns a lazy sequence and does no realization
 ;; at all. For example, the following expression holds the first billion
 ;; (Yes. That is with a `B`!) Fibonacci numbers
-(def lots-of-fibs (take 1000000000 (fibo)))
+(def lots-o-fibs (take 1000000000 (fibo)))
 
-;; Notice tha creating `lots-of-fibs` returns almost immediately.
+;; Notice tha creating `lots-o-fibs` returns almost immediately.
 ;; This, seemingly inexplicable action, does _almost nothing_. If you
-;; ever call a function that **actually uses values** in `lots-of-fibs`,
+;; ever call a function that **actually uses values** in `lots-o-fibs`,
 ;; Clojure will calculate them **at that time**. For example, the
 ;; following call will return the 100th Fibonacci number from
-;; `lots-of-fibs` but **without** calculating the billion other
-;; numbers that `lots-of-fibs` "promises" to provide.
+;; `lots-o-fibs` but **without** calculating the billion other
+;; numbers that `lots-o-fibs` "promises" to provide.
 
-(nth lots-of-fibs 100)
+(nth lots-o-fibs 100)
 
 ;; Most sequence functions return lazy sequences. If you are
 ;; uncertain, the function documentation will typically tell you the
@@ -527,3 +527,57 @@ a
 ;; returns a result, not a function of no arguments, when all the
 ;; arguments are fixed.
 ((faux-curry true?) (= 1 1))
+
+;; Recursion revisited
+
+;; Mutual recursion
+
+;; A simple example: `odd` and `even`.
+(declare my-odd? my-even?)
+
+(defn my-odd? [n]
+  (if (= n 0)
+    false
+    (my-even? (dec n))))
+
+(defn my-even? [n]
+  (if (= n 0)
+    true
+    (my-odd? (dec n))))
+
+;; Test these functions for small values
+(map my-even? (range 10))
+(map my-odd? (range 10))
+
+;; Unfortunately, both `my-odd?` and `my-even?` consume stack frames
+;; proportional to the size of their argument so they will fail with
+;; large numbers.
+;; (my-even? (* 1000 1000 1000))
+
+;; If we had a **single** function calling itself, we could solve this
+;; issue by `loop` and `recur`. Because `odd` and `even` are **mutually**
+;; recursive, we cannot usa that solution.
+
+;; Almost parenthetically, we could implement `my-odd?` and `my-even?`
+;; more efficiently **without** recursion anyway. For example, adapted
+;; from ``core.clj``
+
+(defn core-even? [n]
+  (zero? (bit-and n 1)))
+(defn core-odd? [n]
+  (not (even? n)))
+
+(map core-even? (range 10))
+(map core-odd? (range 10))
+(core-even? (* 1000 1000 1000))
+(core-odd? (* 1000 1000 1000))
+
+;; We picked odd/even for its simplicity. Other recursive problems
+;; are not so simple and do not have an elegant nonrecursive solution.
+;; We'll examine four approaches that one might use to solve these
+;; kinds of problems.
+;;
+;; - Converting to self-recursion
+;; - Trampolining a mutual recursion
+;; - Replacing recursion with laziness
+;; - Shortcutting recursion with memoization
